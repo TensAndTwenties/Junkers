@@ -4,22 +4,33 @@ using System.Collections;
 public class Enemy_Drone : MonoBehaviour {
 
     bool scanned { get; set; } //has this been scanned?
-    bool targeted { get; set; }
+	public float threatRadius; //distance player must be from the drone for it to become aggressive
+
     public awarenessState currentState;
-	// Use this for initialization
+
+	private Drone_detection_controller drone_detector;
+	private Drone_weapon_system_controller drone_weapon_system;
+
 	void Start () {
         currentState = awarenessState.idle;
+
+		drone_detector =  this.transform.Find ("drone_detector").GetComponent<Drone_detection_controller>();
+		drone_weapon_system = this.transform.Find ("drone_weapon_system").GetComponent<Drone_weapon_system_controller>();
+		
 	}
 	
 	// Update is called once per frame
 	void Update () {
 
         switch (currentState) {
-            case awarenessState.idle:
+		case awarenessState.idle:
+			UpdateIdle ();
                 break;
-            case awarenessState.warned:
+		case awarenessState.warned:
+			UpdateWarned ();
                 break;
-            case awarenessState.attacking:
+		case awarenessState.attacking:
+			UpdateAttacking ();
                 break;
         }
 	}
@@ -35,7 +46,12 @@ public class Enemy_Drone : MonoBehaviour {
     private void UpdateAttacking() {
         //update attacking enemy
     }
+
+	public void ChangeState(awarenessState targetState){
+		currentState = targetState;
+	}
 }
 
 public enum awarenessState { idle, warned, attacking, ally};
+
 

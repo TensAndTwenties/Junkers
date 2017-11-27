@@ -1,26 +1,32 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Assets;
+using Utility;
 
 public class ShipController : MonoBehaviour {
+	//**********
+	//controls player movement and action
 
     private Vector2 mousePos;
     private Vector3 screenPos;
     private Camera camera;
     private Rigidbody shipRigidBody;
     private Quaternion _lookRotation;
-    public float RotationSpeed;
+	private KeyCode previouslyPressedKey; //stores last key pressed - for toggles
+	public float RotationSpeed;
     public float sideThrust; //left and right thrust force
     public float forwardThrust; //forward thrust force
     public float backThrust; //backward thrust force
     public float breakForce; //breaking force
 
+
     public float scanDistance; //distance at which targetable objects are detected
     //public float lockDistance; //distance at which targetable objects can be locked & interacted with
 
+	private UIController UI_Controller;
     private List<GameObject> targetableObjects = new List<GameObject>(); //all targetable objects in the scene
     private List<GameObject> localTargetableObjects = new List<GameObject>(); //targetable objects within the camera's view
+	private List<GameObject> localTargetableEnemies = new List<GameObject>(); //targetable enemies - hostile AI
     private GameObject currentTarget;
     private GameObject directionPointer; //HUD element in tactical overlay to show current turning angle
     private float directionPointerRadius = 6f;
@@ -32,10 +38,10 @@ public class ShipController : MonoBehaviour {
         shipRigidBody = gameObject.GetComponent<Rigidbody>();
         directionPointer = GameObject.Find("DirectionPointer");
 
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        //GameObject[] hackpoints = GameObject.FindGameObjectsWithTag("Hackpoint");
+		GameObject[] enemies = GameObject.FindGameObjectsWithTag(tags.Enemy.ToString ());
+		GameObject[] interactables = GameObject.FindGameObjectsWithTag(tags.Interactable.ToString ());
         targetableObjects.AddRange(enemies);
-       //targetableObjects.AddRange(hackpoints);
+		targetableObjects.AddRange(interactables);
     }
 	
 	void Update () {
@@ -73,9 +79,16 @@ public class ShipController : MonoBehaviour {
         }
 
         if (Input.GetKey(KeyCode.Tab)) {
-            //select or cycle target
-            TargetNext();
+			if (previouslyPressedKey != KeyCode.Tab) {
+				//select or cycle target
+				currentTarget = UIController.TargetNext (localTargetableObjects, localTargetableEnemies, currentTarget, transform.position);
+				previouslyPressedKey = KeyCode.Tab;
+			}
         }
+
+		if (Input.GetKeyUp (KeyCode.Tab)) {
+			previouslyPressedKey = 0;
+		}
 
         if (Input.GetKey(KeyCode.LeftShift))
         {
@@ -115,7 +128,7 @@ public class ShipController : MonoBehaviour {
             }
         }
 
-        //update local targetable objects
+        //update local targetable objects and enemies
 
         foreach (GameObject obj in targetableObjects) {
             Vector3 screenPoint = camera.WorldToViewportPoint(obj.transform.position);
@@ -123,75 +136,32 @@ public class ShipController : MonoBehaviour {
 
             if (onScreen)
             {
-                if(!localTargetableObjects.Contains(obj))
-                    localTargetableObjects.Add(obj);
+				if (obj.tag == tags.Interactable.ToString ()) {
+					if (!localTargetableObjects.Contains (obj))
+						localTargetableObjects.Add (obj);
+				} else if (obj.tag == tags.Enemy.ToString ()) {
+					if (!localTargetableEnemies.Contains (obj))
+						localTargetableEnemies.Add (obj);
+				}
             }
             else {
                 if (localTargetableObjects.Contains(obj))
                     localTargetableObjects.Remove(obj);
+
+				if (obj.tag == tags.Interactable.ToString ()) {
+					if (localTargetableObjects.Contains (obj))
+						localTargetableObjects.Remove(obj);
+				} else if (obj.tag == tags.Enemy.ToString ()) {
+					if (localTargetableEnemies.Contains (obj))
+						localTargetableEnemies.Remove(obj);
+				}
             }
         }
 
         //update HUD elements
 
         //direction pointer
-        /*
-        mousePos = Input.mousePosition;
-        Vector3 pointerVector = _lookRotation * transform.forward;
-        pointerVector.Normalize();
-        pointerVector *= directionPointerRadius;
-
-        directionPointer.transform.localPosition = Quaternion.Euler(new Vector3(0, angle, 0)) * Vector3.forward;
-        */
-
         directionPointer.transform.rotation = Quaternion.Euler(new Vector3(0, angle, 0));
-    }
-
-    private void TargetNext() {
-        GameObject toTarget = null;
-
-        foreach (GameObject obj in localTargetableObjects) {
-            if (obj.tag == tags.Enemy.ToString())
-            {
-                //evaluate enemies first, pick closest if any
-                if (obj.GetComponent<Enemy_Drone>().currentState != awarenessState.ally) {
-                    //ensure enemy isnt currrently allied
-                    if (currentTarget == null)
-                    {
-                        //set this as target;
-                        toTarget = obj;
-                    } else {
-                        //check to see if this is closer than the current target, if so this is new target
-                        /*float xPos = this.transform.position.x - obj.transform.position.x;
-                        float yPos = this.transform.position.z - obj.transform.position.z;
-
-                        float objDistance = Mathf.Sqrt(Mathf.Pow(xPos,2) + Mathf.Pow(yPos, 2)); 
-
-                        float currentTargetxPos = this.transform.position.x - toTarget.transform.position.x;
-                        float currentTargetyPos = this.transform.position.z - toTarget.transform.position.z;
-
-                        float currentTargetDistance = Mathf.Sqrt(Mathf.Pow(currentTargetxPos, 2) + Mathf.Pow(currentTargetyPos, 2));
-                        */
-
-                        float objDistance = Vector3.Distance(obj.transform.position, transform.position);
-                        float currentTargetDistance = (currentTarget != null) ? Vector3.Distance(currentTarget.transform.position, transform.position): 0;
-
-                        if (objDistance < currentTargetDistance) {
-                            //its closer; this is new target
-                            toTarget = obj;
-                        }
-                    }
-                }
-            }
-            else {
-                //evaluate non-enemy selectable points
-            }
-
-            if (toTarget != null) {
-                GameObject.Find("UI_Controller").GetComponent<UIController>().Target(toTarget);
-                currentTarget = toTarget;
-            }
-        }
     }
 
     void OnGUI()

@@ -5,6 +5,9 @@ TagManager:
   serializedVersion: 2
   tags:
   - Enemy
+  - Interactable
+  - UI_target_reticle
+  - Player_ship
   layers:
   - Default
   - TransparentFX
