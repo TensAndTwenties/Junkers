@@ -18,7 +18,7 @@ public class ShipController : MonoBehaviour {
     public float forwardThrust; //forward thrust force
     public float backThrust; //backward thrust force
     public float breakForce; //breaking force
-
+	public Weapon mainWeapon; //equipped main turret weapon
 
     public float scanDistance; //distance at which targetable objects are detected
     //public float lockDistance; //distance at which targetable objects can be locked & interacted with
@@ -38,6 +38,7 @@ public class ShipController : MonoBehaviour {
         shipRigidBody = gameObject.GetComponent<Rigidbody>();
         directionPointer = GameObject.Find("DirectionPointer");
 
+		mainWeapon = this.transform.Find ("main_weapon").GetComponent<Weapon> ();
 		GameObject[] enemies = GameObject.FindGameObjectsWithTag(tags.Enemy.ToString ());
 		GameObject[] interactables = GameObject.FindGameObjectsWithTag(tags.Interactable.ToString ());
         targetableObjects.AddRange(enemies);
@@ -45,6 +46,7 @@ public class ShipController : MonoBehaviour {
     }
 	
 	void Update () {
+		
         mousePos = Input.mousePosition;
         //screenPos = camera.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, transform.position.z - camera.transform.position.z));
 
@@ -90,6 +92,11 @@ public class ShipController : MonoBehaviour {
 			previouslyPressedKey = 0;
 		}
 
+		if (Input.GetKey (KeyCode.Space)) {
+			if(currentTarget != null && currentTarget.tag == Utility.tags.Enemy.ToString())
+				mainWeapon.Fire (currentTarget.transform.position, this.transform.position);
+		}
+
         if (Input.GetKey(KeyCode.LeftShift))
         {
             //brake
@@ -129,6 +136,7 @@ public class ShipController : MonoBehaviour {
         }
 
         //update local targetable objects and enemies
+
 
         foreach (GameObject obj in targetableObjects) {
             Vector3 screenPoint = camera.WorldToViewportPoint(obj.transform.position);

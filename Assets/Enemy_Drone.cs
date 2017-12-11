@@ -7,6 +7,8 @@ public class Enemy_Drone : MonoBehaviour {
 	public float threatRadius; //distance player must be from the drone for it to become aggressive
 
     public awarenessState currentState;
+	public behaviorProfile currentProfile;
+	public ActionPath actionPath;
 
 	private Drone_detection_controller drone_detector;
 	private Drone_weapon_system_controller drone_weapon_system;
@@ -45,6 +47,7 @@ public class Enemy_Drone : MonoBehaviour {
 
     private void UpdateAttacking() {
         //update attacking enemy
+		actionPath.setDefaultActionPath(currentProfile);
     }
 
 	public void ChangeState(awarenessState targetState){
@@ -53,5 +56,6 @@ public class Enemy_Drone : MonoBehaviour {
 }
 
 public enum awarenessState { idle, warned, attacking, ally};
+public enum behaviorProfile { bombard, closeRange, kamikaze };
 
 
